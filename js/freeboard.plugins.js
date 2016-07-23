@@ -736,7 +736,12 @@ freeboard.loadDatasourcePlugin({
 			if (values[plotIndex].length >= SPARKLINE_HISTORY_LENGTH) {
 				values[plotIndex].shift();
 			}
-			values[plotIndex].push(Number(val));
+			// Tolerate if some of the values are missing: Repeat last value
+			if (_.isArray(value) && val === undefined) {
+				values[plotIndex].push(values[plotIndex][values[plotIndex].length-1]);
+			} else {
+				values[plotIndex].push(Number(val));
+			}
 
 			if(valueMin === undefined || val < valueMin) {
 				valueMin = val;
