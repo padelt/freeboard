@@ -56,7 +56,7 @@ DatasourceModel = function(theFreeboardModel, datasourcePlugins) {
 			}
 
 			// Do we need to load any external scripts?
-			if(datasourceType.external_scripts)
+			if(datasourceType.external_scripts && datasourceType.external_scripts.length > 0)
 			{
 				head.js(datasourceType.external_scripts.slice(0), finishLoad); // Need to clone the array because head.js adds some weird functions to it
 			}
@@ -430,6 +430,8 @@ function FreeboardModel(datasourcePlugins, widgetPlugins, freeboardUI)
 			if(self.allow_edit() && self.panes().length == 0)
 			{
 				self.setEditing(true);
+			} else {
+				self.setEditing(false);
 			}
 
 			if(_.isFunction(finishedCallback))
@@ -2211,6 +2213,8 @@ function WidgetModel(theFreeboardModel, widgetPlugins) {
 					self.shouldRender(true);
 					self._heightUpdate.valueHasMutated();
 
+					// Inject send method into widget
+					self.widgetInstance.sendValue = self.sendValue.bind(self)
 				});
 			}
 
@@ -2223,6 +2227,26 @@ function WidgetModel(theFreeboardModel, widgetPlugins) {
 			}
 		}
 	});
+
+
+	// Allow for widgets to send data back to sources
+	this.sendValue = function(sourceid, value) {
+		console.log('send', sourceid, value);
+
+		if (sourceid) {
+			var matches = sourceid.match(/datasources\[["']([\w\-]+)["']\]/);
+			if (matches) {
+				_.each(theFreeboardModel.datasources(), function(d) {
+					if (d.name() == matches[1]) {
+						if (d.datasourceInstance.send && _.isFunction(d.datasourceInstance.send)) {
+							d.datasourceInstance.send(value);
+						}
+					}
+				})
+			}
+		}
+	},
+
 
 	this.settings = ko.observable({});
 	this.settings.subscribe(function (newValue) {
